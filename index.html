@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>바이어 대시보드</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --line:#e3e6ea; --text:#1a1d21; --muted:#6b7280;
+    --accent:#2563eb; --accent-soft:#eff4ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:"Malgun Gothic","맑은 고딕",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+       font-size:14px;line-height:1.5}
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:14px 20px;
+         display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+  header h1{font-size:16px;margin:0;font-weight:700}
+  header .who{color:var(--muted);font-size:12px;margin-left:auto}
+  .wrap{max-width:1400px;margin:0 auto;padding:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px}
+  .center{max-width:420px;margin:60px auto}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
+  input,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:7px;
+               font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
+  input:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  button{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:10px 16px;
+         font-size:14px;font-family:inherit;font-weight:600;cursor:pointer}
+  button:hover{filter:brightness(.94)}
+  button.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:400}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
+  .row > div{flex:1;min-width:150px}
+  .row label{margin-top:0}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:12px 16px;min-width:104px}
+  .stat b{display:block;font-size:22px;line-height:1.2}
+  .stat span{font-size:12px;color:var(--muted)}
+  .tablebox{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:66vh}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:9px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{background:#fafbfc;position:sticky;top:0;font-size:12px;color:var(--muted);
+     font-weight:600;white-space:nowrap;z-index:1}
+  tbody tr:hover{background:#fbfcfe}
+  td.company{font-weight:600;min-width:190px}
+  td.interest{max-width:340px;color:var(--muted);font-size:12px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;
+        font-weight:600;white-space:nowrap;background:#eef0f3;color:#4b5563}
+  .s-후보{background:#eef2ff;color:#4338ca}
+  .s-검토완료{background:#ecfeff;color:#0e7490}
+  .s-메일발송{background:#fef3c7;color:#92400e}
+  .s-회신옴{background:#dcfce7;color:#166534}
+  .s-협상중{background:#ffedd5;color:#9a3412}
+  .s-성사{background:#bbf7d0;color:#14532d}
+  .s-보류{background:#f1f5f9;color:#64748b}
+  .msg{padding:10px 12px;border-radius:7px;font-size:13px;margin-top:12px}
+  .msg.err{background:#fef2f2;color:#b91c1c}
+  .msg.ok{background:#f0fdf4;color:#166534}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}
+  .hide{display:none}
+</style>
+</head>
+<body>
+
+<!-- ===== 1단계: Supabase 연결 정보 입력 (최초 1회) ===== -->
+<div id="setup" class="wrap hide">
+  <div class="card center">
+    <h1 style="margin:0 0 4px;font-size:17px">처음 설정</h1>
+    <p class="hint" style="margin-top:0">
+      Supabase 대시보드 → 왼쪽 아래 <b>Settings</b> → <b>API</b> 화면에서<br>
+      아래 두 값을 복사해 붙여넣으세요. 이 브라우저에만 저장됩니다.
+    </p>
+    <label>Project URL</label>
+    <input id="setUrl" placeholder="https://xxxxxxxx.supabase.co">
+    <label>anon public key</label>
+    <input id="setKey" placeholder="eyJhbGciOi...">
+    <div style="margin-top:16px"><button onclick="saveConfig()">저장하고 시작</button></div>
+    <div id="setupMsg"></div>
+  </div>
+</div>
+
+<!-- ===== 2단계: 로그인 ===== -->
+<div id="login" class="wrap hide">
+  <div class="card center">
+    <h1 style="margin:0 0 4px;font-size:17px">바이어 대시보드</h1>
+    <p class="hint" style="margin-top:0">Supabase에 등록된 계정으로 로그인하세요.</p>
+    <label>이메일</label>
+    <input id="email" type="email" autocomplete="username">
+    <label>비밀번호</label>
+    <input id="password" type="password" autocomplete="current-password"
+           onkeydown="if(event.key==='Enter')doLogin()">
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button onclick="doLogin()">로그인</button>
+      <button class="ghost" onclick="resetConfig()">연결 정보 다시 입력</button>
+    </div>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ===== 3단계: 대시보드 ===== -->
+<div id="app" class="hide">
+  <header>
+    <h1>바이어 대시보드</h1>
+    <span class="who" id="who"></span>
+    <button class="ghost" onclick="doLogout()">로그아웃</button>
+  </header>
+
+  <div class="wrap">
+    <div class="stats" id="stats"></div>
+
+    <div class="row">
+      <div>
+        <label>검색 (회사명 · 이메일 · 메모)</label>
+        <input id="q" placeholder="예: Asmodee" oninput="render()">
+      </div>
+      <div style="flex:0 0 170px">
+        <label>국가</label>
+        <select id="fCountry" onchange="render()"><option value="">전체</option></select>
+      </div>
+      <div style="flex:0 0 150px">
+        <label>상태</label>
+        <select id="fStatus" onchange="render()"><option value="">전체</option></select>
+      </div>
+      <div style="flex:0 0 auto">
+        <button class="ghost" onclick="loadData()">새로고침</button>
+      </div>
+    </div>
+
+    <div class="tablebox">
+      <table>
+        <thead><tr>
+          <th>회사명</th><th>국가</th><th>유형</th><th>이메일</th>
+          <th>웹사이트</th><th>상태</th><th>관심사</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="appMsg"></div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const STATUSES = ['후보','검토완료','메일발송','회신옴','협상중','성사','보류'];
+let sb = null, rows = [];
+
+const $ = id => document.getElementById(id);
+const show = id => { ['setup','login','app'].forEach(s => $(s).classList.toggle('hide', s !== id)); };
+const note = (el, text, kind) => { $(el).innerHTML = text ? `<div class="msg ${kind||'err'}">${text}</div>` : ''; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- 설정 ----------
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem('sbcfg') || 'null'); } catch (e) { return null; }
+}
+window.saveConfig = () => {
+  const url = $('setUrl').value.trim().replace(/\/+$/, '');
+  const key = $('setKey').value.trim();
+  if (!/^https:\/\/.+\.supabase\.co$/.test(url)) return note('setupMsg', 'Project URL 형식이 올바르지 않습니다. (예: https://abcd1234.supabase.co)');
+  if (key.length < 30) return note('setupMsg', 'anon public key를 확인해 주세요.');
+  localStorage.setItem('sbcfg', JSON.stringify({ url, key }));
+  note('setupMsg', '');
+  start();
+};
+window.resetConfig = () => { localStorage.removeItem('sbcfg'); location.reload(); };
+
+// ---------- 로그인 ----------
+window.doLogin = async () => {
+  note('loginMsg', '');
+  const { error } = await sb.auth.signInWithPassword({
+    email: $('email').value.trim(), password: $('password').value
+  });
+  if (error) return note('loginMsg', '로그인 실패: ' + esc(error.message));
+  afterLogin();
+};
+window.doLogout = async () => { await sb.auth.signOut(); location.reload(); };
+
+// ---------- 데이터 ----------
+window.loadData = async () => {
+  note('appMsg', '');
+  const { data, error } = await sb.from('buyers')
+    .select('company,country,type,email,website,status,interest,notes')
+    .order('country').order('company');
+  if (error) { note('appMsg', '불러오기 실패: ' + esc(error.message)); return; }
+  rows = data || [];
+  const countries = [...new Set(rows.map(r => r.country).filter(Boolean))].sort();
+  $('fCountry').innerHTML = '<option value="">전체</option>' +
+    countries.map(c => `<option>${esc(c)}</option>`).join('');
+  $('fStatus').innerHTML = '<option value="">전체</option>' +
+    STATUSES.map(s => `<option>${s}</option>`).join('');
+  render();
+};
+
+window.render = () => {
+  const q = $('q').value.trim().toLowerCase();
+  const c = $('fCountry').value, s = $('fStatus').value;
+  const list = rows.filter(r =>
+    (!c || r.country === c) &&
+    (!s || r.status === s) &&
+    (!q || [r.company, r.email, r.notes, r.interest, r.type]
+      .some(v => String(v ?? '').toLowerCase().includes(q))));
+
+  const counts = STATUSES.map(st => [st, rows.filter(r => r.status === st).length])
+                         .filter(([, n]) => n > 0);
+  $('stats').innerHTML =
+    `<div class="stat"><b>${rows.length}</b><span>전체</span></div>` +
+    `<div class="stat"><b>${list.length}</b><span>현재 표시</span></div>` +
+    counts.map(([st, n]) => `<div class="stat"><b>${n}</b><span>${st}</span></div>`).join('');
+
+  $('tbody').innerHTML = list.length ? list.map(r => `
+    <tr>
+      <td class="company">${esc(r.company)}</td>
+      <td>${esc(r.country)}</td>
+      <td>${esc(r.type)}</td>
+      <td>${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : '<span style="color:#9ca3af">—</span>'}</td>
+      <td>${r.website ? `<a href="${esc(r.website)}" target="_blank" rel="noopener">링크</a>` : '<span style="color:#9ca3af">—</span>'}</td>
+      <td><span class="pill s-${esc(r.status)}">${esc(r.status)}</span></td>
+      <td class="interest">${esc(r.interest)}</td>
+    </tr>`).join('')
+    : '<tr><td colspan="7" class="empty">조건에 맞는 바이어가 없습니다.</td></tr>';
+};
+
+// ---------- 시작 ----------
+async function afterLogin() {
+  const { data } = await sb.auth.getUser();
+  $('who').textContent = data?.user?.email || '';
+  show('app');
+  loadData();
+}
+
+async function start() {
+  const cfg = getConfig();
+  if (!cfg) { show('setup'); return; }
+  sb = createClient(cfg.url, cfg.key);
+  const { data } = await sb.auth.getSession();
+  if (data?.session) afterLogin(); else show('login');
+}
+
+start();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# ── 인터넷에 공개되면 안 되는 파일 (절대 GitHub에 올라가지 않게 차단) ──
+*.sql
+*.csv
+*.xlsx
+*.xls
+*.env
+secret*
