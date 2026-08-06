@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>바이어 관리 대시보드</title>
+<style>
+:root{
+  --blue:#0B65D8; --blue-dark:#0952b0; --blue-soft:#eef5ff;
+  --bg:#f7f8fa; --card:#fff; --line:#e4e7ec; --line-soft:#f0f2f5;
+  --text:#16191d; --muted:#697586; --danger:#d92d20;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text); font-size:14px; line-height:1.55;
+  font-family:"Pretendard","Malgun Gothic","맑은 고딕",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  word-break:keep-all; overflow-wrap:break-word;
+}
+h1,h2,h3,p{margin:0}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- 공통 요소 ---------- */
+button{
+  font:inherit; cursor:pointer; border-radius:8px; border:1px solid transparent;
+  padding:9px 15px; font-weight:600; transition:.12s;
+}
+.btn{background:var(--blue);color:#fff}
+.btn:hover{background:var(--blue-dark)}
+.btn-line{background:#fff;color:var(--text);border-color:var(--line);font-weight:500}
+.btn-line:hover{background:var(--line-soft)}
+.btn-danger{background:#fff;color:var(--danger);border-color:#f5c9c4;font-weight:500}
+.btn-danger:hover{background:#fef3f2}
+.btn-sm{padding:6px 11px;font-size:13px}
+
+input,select,textarea{
+  font:inherit; width:100%; padding:9px 11px; color:var(--text);
+  border:1px solid var(--line); border-radius:8px; background:#fff;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-soft);
+}
+textarea{resize:vertical;min-height:74px}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.field{margin-bottom:14px}
+
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.p-후보{background:#eef2ff;color:#3730a3}
+.p-검토완료{background:#ecfeff;color:#0e7490}
+.p-메일발송{background:#fef7c3;color:#854d0e}
+.p-회신옴{background:#dcfce7;color:#15803d}
+.p-협상중{background:#ffedd5;color:#9a3412}
+.p-성사{background:#bbf7d0;color:#14532d}
+.p-보류{background:#f1f3f5;color:#667085}
+
+/* ---------- 로그인 ---------- */
+#login{display:grid;min-height:100dvh;place-items:center;padding:20px}
+#login.off{display:none}
+#login .box{
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:32px 28px;width:100%;max-width:390px;box-shadow:0 1px 3px rgba(16,24,40,.05)
+}
+#login .logo{width:38px;height:38px;border-radius:10px;background:var(--blue);margin-bottom:16px;
+  display:grid;place-items:center;color:#fff;font-weight:800;font-size:17px}
+#login h1{font-size:19px;margin-bottom:4px}
+#login .sub{color:var(--muted);font-size:13px;margin-bottom:22px}
+
+/* ---------- 헤더 ---------- */
+header{
+  background:#fff;border-bottom:1px solid var(--line);padding:12px 20px;
+  display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20
+}
+header .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:15px}
+header .dot{width:24px;height:24px;border-radius:7px;background:var(--blue);
+  display:grid;place-items:center;color:#fff;font-size:12px;font-weight:800}
+header .spacer{flex:1}
+header .me{color:var(--muted);font-size:12.5px;max-width:34vw;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+
+.wrap{max-width:1500px;margin:0 auto;padding:18px 20px 60px}
+
+/* ---------- 요약 ---------- */
+.summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+.kpi b{display:block;font-size:24px;line-height:1.15;letter-spacing:-.02em}
+.kpi span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.kpi.hero{background:var(--blue);border-color:var(--blue)}
+.kpi.hero b,.kpi.hero span{color:#fff}
+.kpi.hero span{opacity:.85}
+.kpi.week{border-color:#a6e0bd;background:#f4fdf7}
+.kpi.week b{color:#15803d}
+
+/* ---------- 도구 모음 ---------- */
+.toolbar{background:#fff;border:1px solid var(--line);border-radius:11px;padding:14px;margin-bottom:14px}
+.filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end}
+.filters .field{margin:0}
+.tools-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.tools-row .count{color:var(--muted);font-size:13px;margin-left:auto}
+
+/* ---------- 표 ---------- */
+.tablebox{background:#fff;border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.scroll{overflow:auto;max-height:64vh}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line-soft)}
+thead th{
+  position:sticky;top:0;background:#fafbfc;z-index:2;font-size:11.5px;color:var(--muted);
+  font-weight:700;white-space:nowrap;border-bottom:1px solid var(--line)
+}
+tbody tr:hover{background:#fbfcfe}
+td.co{font-weight:700;min-width:170px}
+td.co small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;margin-top:2px}
+td.memo{max-width:300px;color:var(--muted);font-size:12px}
+td.nowrap{white-space:nowrap}
+.mini-select{padding:5px 8px;font-size:12px;border-radius:7px;min-width:96px}
+.dash{color:#b9c0cb}
+.empty{padding:52px 20px;text-align:center;color:var(--muted)}
+
+/* ---------- 모달 ---------- */
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(16,24,40,.5);z-index:60;
+  padding:20px;overflow:auto
+}
+.overlay.on{display:block}
+.modal{
+  background:#fff;border-radius:14px;max-width:660px;margin:24px auto;
+  box-shadow:0 20px 50px rgba(16,24,40,.2)
+}
+.modal .head{padding:18px 20px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px}
+.modal .head h2{font-size:16px}
+.modal .body{padding:20px}
+.modal .foot{padding:14px 20px;border-top:1px solid var(--line);
+  display:flex;gap:8px;align-items:center}
+.modal .foot .spacer{flex:1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+
+/* ---------- 알림 ---------- */
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:#16191d;color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;
+  font-weight:600;opacity:0;pointer-events:none;transition:.22s;z-index:99;max-width:90vw
+}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.bad{background:var(--danger)}
+.inline-msg{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:13px;
+  background:#fef3f2;color:var(--danger)}
+
+
+.hide{display:none !important}
+
+/* ---------- 검토 카드 ---------- */
+.imp-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;
+  padding-bottom:12px;border-bottom:1px solid var(--line)}
+.imp-tools .grow{flex:1}
+.imp-sum{font-size:13px;color:var(--muted)}
+.cards{display:grid;gap:10px}
+.cd{border:1px solid var(--line);border-radius:11px;padding:13px 15px;display:flex;gap:12px;
+  align-items:flex-start;transition:.12s;background:#fff}
+.cd:hover{border-color:#c9d6e8}
+.cd.on{border-color:var(--blue);background:var(--blue-soft)}
+.cd.dup{opacity:.55;background:#fafbfc}
+.cd input[type=checkbox]{width:17px;height:17px;margin-top:2px;flex:0 0 auto;cursor:pointer;accent-color:var(--blue)}
+.cd .body2{flex:1;min-width:0}
+.cd .nm{font-weight:700;font-size:14.5px;margin-bottom:3px}
+.cd .meta{font-size:12px;color:var(--muted);margin-bottom:7px}
+.cd .why{font-size:13px;margin-bottom:8px;line-height:1.5}
+.cd .links{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.cd .lk{display:inline-block;font-size:12px;font-weight:600;padding:4px 10px;border-radius:7px;
+  border:1px solid var(--line);color:var(--blue);background:#fff;text-decoration:none}
+.cd .lk:hover{background:var(--blue-soft);text-decoration:none}
+.cd .tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px}
+.tag-mail{background:#dcfce7;color:#15803d}
+.tag-form{background:#fef7c3;color:#854d0e}
+.tag-dup{background:#f1f3f5;color:#667085}
+.cd .memo2{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.5}
+@media (max-width:760px){ .cd{padding:12px} }
+
+/* ---------- 모바일 ---------- */
+@media (max-width:900px){
+  .filters{grid-template-columns:1fr 1fr}
+  .filters .field:first-child{grid-column:1/-1}
+  .filters .btn-line{grid-column:1/-1}
+  .grid2{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .wrap{padding:14px 12px 60px}
+  header{padding:11px 13px}
+  header .me{display:none}
+  .summary{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .kpi{padding:11px}
+  .kpi b{font-size:20px}
+  .scroll{max-height:none}
+  table,thead,tbody,th,td,tr{display:block}
+  thead{display:none}
+  tbody tr{border-bottom:8px solid var(--bg);padding:12px 13px;position:relative}
+  tbody tr:hover{background:#fff}
+  td{border:0;padding:5px 0;display:grid;grid-template-columns:82px 1fr;gap:10px;align-items:start}
+  td::before{content:attr(data-l);font-size:11.5px;color:var(--muted);font-weight:700;padding-top:2px}
+  td.co{font-size:15px;padding-bottom:8px;display:block}
+  td.co::before{display:none}
+  td.memo{max-width:none}
+  .modal{margin:0}
+  .modal .foot{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ 로그인 ══════════ -->
+<div id="login">
+  <div class="box">
+    <div class="logo">B</div>
+    <h1>바이어 관리 대시보드</h1>
+    <p class="sub">등록된 계정으로 로그인하세요.</p>
+    <div class="field">
+      <label for="email">이메일</label>
+      <input id="email" type="email" autocomplete="username" placeholder="name@company.com">
+    </div>
+    <div class="field">
+      <label for="password">비밀번호</label>
+      <input id="password" type="password" autocomplete="current-password">
+    </div>
+    <button class="btn" style="width:100%;margin-top:6px" id="loginBtn">로그인</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ══════════ 본 화면 ══════════ -->
+<div id="app" style="display:none">
+  <header>
+    <div class="brand"><span class="dot">B</span> 바이어 관리</div>
+    <div class="spacer"></div>
+    <span class="me" id="me"></span>
+    <button class="btn-line btn-sm" id="logoutBtn">로그아웃</button>
+  </header>
+
+  <div class="wrap">
+    <!-- 요약 -->
+    <div class="summary" id="summary"></div>
+
+    <!-- 도구 -->
+    <div class="toolbar">
+      <div class="tools-row">
+        <button class="btn btn-sm" id="addBtn">+ 바이어 추가</button>
+        <button class="btn-line btn-sm" id="importBtn">CSV 가져오기</button>
+        <button class="btn-line btn-sm" id="reloadBtn">새로고침</button>
+        <button class="btn-line btn-sm" id="resetBtn">필터 초기화</button>
+        <span class="count" id="count"></span>
+      </div>
+      <div class="filters">
+        <div class="field">
+          <label for="q">회사명 검색</label>
+          <input id="q" placeholder="회사명 · 이메일 · 메모">
+        </div>
+        <div class="field">
+          <label for="fCountry">국가</label>
+          <select id="fCountry"><option value="">전체</option></select>
+        </div>
+        <div class="field">
+          <label for="fStatus">상태</label>
+          <select id="fStatus"><option value="">전체</option></select>
+        </div>
+        <div class="field">
+          <label for="fOwner">담당 직원</label>
+          <select id="fOwner"><option value="">전체</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 표 -->
+    <div class="tablebox">
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>회사명</th><th>국가</th><th>바이어 담당자</th><th>이메일</th>
+              <th>웹사이트</th><th>상태</th><th>담당 직원</th><th>마지막 연락</th><th>관심사 · 메모</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 신규 바이어 검토 ══════════ -->
+<div class="overlay" id="impOverlay">
+  <div class="modal" style="max-width:880px">
+    <div class="head">
+      <h2 id="impTitle">신규 바이어 검토</h2>
+      <div style="flex:1"></div>
+      <button class="btn-line btn-sm" id="impCloseBtn">닫기</button>
+    </div>
+    <div class="body">
+
+      <div id="impStep1">
+        <p style="color:var(--muted);font-size:13px;margin-bottom:16px">
+          아침에 받은 <b>buyers.csv</b> 파일을 고르세요. 바로 저장되지 않고, 한 곳씩 확인한 뒤
+          <b>고른 것만</b> 추가됩니다.
+        </p>
+        <div class="field">
+          <label for="impFile">파일 선택</label>
+          <input id="impFile" type="file" accept=".csv,text/csv">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label for="impText">또는 CSV 내용 붙여넣기</label>
+          <textarea id="impText" style="min-height:110px;font-family:monospace;font-size:12px"
+            placeholder="company,country,type,contact_name,email,..."></textarea>
+        </div>
+      </div>
+
+      <div id="impStep2" class="hide">
+        <div class="imp-tools">
+          <button class="btn-line btn-sm" id="impAllBtn">전체 선택</button>
+          <button class="btn-line btn-sm" id="impNoneBtn">전체 해제</button>
+          <div class="grow"></div>
+          <span class="imp-sum" id="impSum"></span>
+        </div>
+        <div class="cards" id="impCards"></div>
+      </div>
+
+      <div id="impMsg"></div>
+    </div>
+    <div class="foot">
+      <button class="btn-line btn-sm hide" id="impBackBtn">← 파일 다시 고르기</button>
+      <div class="spacer"></div>
+      <button class="btn-line" id="impCancelBtn">취소</button>
+      <button class="btn" id="impLoadBtn">불러오기</button>
+      <button class="btn hide" id="impRunBtn">선택한 0곳 추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 추가/수정 폼 ══════════ -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="head">
+      <h2 id="modalTitle">바이어 추가</h2>
+      <div style="flex:1"></div>
+      <button class="btn-line btn-sm" id="closeBtn">닫기</button>
+    </div>
+    <div class="body">
+      <div class="field">
+        <label for="f_company">회사명 <span style="color:var(--danger)">*</span></label>
+        <input id="f_company" placeholder="예: Asmodee UK Ltd">
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="f_country">국가</label><input id="f_country" placeholder="예: 영국"></div>
+        <div class="field"><label for="f_type">업체유형</label><input id="f_type" placeholder="예: TCG 도매유통"></div>
+        <div class="field"><label for="f_contact_name">담당자</label><input id="f_contact_name"></div>
+        <div class="field"><label for="f_email">이메일</label><input id="f_email" type="email"></div>
+        <div class="field"><label for="f_website">웹사이트</label><input id="f_website" placeholder="https://"></div>
+        <div class="field"><label for="f_evidence">정보 출처 URL</label><input id="f_evidence" placeholder="https://"></div>
+        <div class="field"><label for="f_status">상태</label><select id="f_status"></select></div>
+        <div class="field"><label for="f_owner">담당 직원</label><input id="f_owner"></div>
+      </div>
+      <div class="field"><label for="f_last_touch">마지막 연락일</label><input id="f_last_touch" type="date"></div>
+      <div class="field"><label for="f_interest">관심사 메모</label><textarea id="f_interest"></textarea></div>
+      <div class="field" style="margin-bottom:0"><label for="f_notes">메모</label><textarea id="f_notes"></textarea></div>
+      <div id="modalMsg"></div>
+    </div>
+    <div class="foot">
+      <button class="btn-danger btn-sm" id="deleteBtn" style="display:none">삭제</button>
+      <div class="spacer"></div>
+      <button class="btn-line" id="cancelBtn">취소</button>
+      <button class="btn" id="saveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+/* ════════ 설정 ════════ */
+const SUPABASE_URL = 'https://xuuhxiqpseeobkedjhek.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_hGQq-qZIg8Y0lhtx02E2uw_53Tt8wMC';
+const STATUSES = ['후보','검토완료','메일발송','회신옴','협상중','성사','보류'];
+const FIELDS = ['company','country','type','contact_name','email','website',
+                'evidence','interest','status','owner','last_touch','notes'];
+
+const $ = id => document.getElementById(id);
+
+// Supabase 공식 라이브러리 불러오기 (실패해도 화면이 하얗게 되지 않도록 처리)
+let sb = null;
+try {
+  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+  sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+  $('loginMsg').innerHTML =
+    '<div class="inline-msg">Supabase 라이브러리를 불러오지 못했습니다. ' +
+    '인터넷 연결을 확인하고 새로고침해 주세요.</div>';
+  $('loginBtn').disabled = true;
+}
+let rows = [], editingId = null, deleteArmed = false;
+
+/* ════════ 도우미 ════════ */
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(text, bad) {
+  const t = $('toast');
+  t.textContent = text;
+  t.className = 'on' + (bad ? ' bad' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = ''; }, 2600);
+}
+
+// 이번 주 월요일 00:00 (YYYY-MM-DD)
+function mondayOfThisWeek() {
+  const d = new Date();
+  const diff = (d.getDay() + 6) % 7;          // 월=0 … 일=6
+  d.setDate(d.getDate() - diff);
+  d.setHours(0, 0, 0, 0);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/* ════════ 로그인 ════════ */
+async function doLogin() {
+  const email = $('email').value.trim(), password = $('password').value;
+  if (!email || !password) { $('loginMsg').innerHTML = '<div class="inline-msg">이메일과 비밀번호를 모두 입력하세요.</div>'; return; }
+  $('loginBtn').disabled = true; $('loginBtn').textContent = '로그인 중...';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  $('loginBtn').disabled = false; $('loginBtn').textContent = '로그인';
+  if (error) {
+    $('loginMsg').innerHTML = `<div class="inline-msg">로그인 실패 — ${esc(error.message)}</div>`;
+    return;
+  }
+  $('loginMsg').innerHTML = ''; $('password').value = '';
+  enterApp();
+}
+
+async function enterApp() {
+  const { data } = await sb.auth.getUser();
+  $('me').textContent = data?.user?.email || '';
+  $('login').classList.add('off');
+  $('app').style.display = 'block';
+  await loadData();
+}
+
+/* ════════ 데이터 ════════ */
+async function loadData() {
+  const { data, error } = await sb.from('buyers')
+    .select('id,' + FIELDS.join(','))
+    .order('country', { ascending: true })
+    .order('company', { ascending: true });
+  if (error) { toast('불러오기 실패 — ' + error.message, true); return; }
+  rows = data || [];
+  buildFilterOptions();
+  render();
+}
+
+function buildFilterOptions() {
+  const keep = (el, list) => {
+    const cur = el.value;
+    el.innerHTML = '<option value="">전체</option>' +
+      list.map(v => `<option>${esc(v)}</option>`).join('');
+    el.value = list.includes(cur) ? cur : '';
+  };
+  keep($('fCountry'), [...new Set(rows.map(r => r.country).filter(Boolean))].sort());
+  keep($('fOwner'),   [...new Set(rows.map(r => r.owner).filter(Boolean))].sort());
+  keep($('fStatus'),  STATUSES);
+}
+
+function filtered() {
+  const q = $('q').value.trim().toLowerCase();
+  const c = $('fCountry').value, s = $('fStatus').value, o = $('fOwner').value;
+  return rows.filter(r =>
+    (!c || r.country === c) && (!s || r.status === s) && (!o || r.owner === o) &&
+    (!q || [r.company, r.email, r.notes, r.interest, r.contact_name, r.type]
+      .some(v => String(v ?? '').toLowerCase().includes(q))));
+}
+
+/* ════════ 화면 그리기 ════════ */
+function render() {
+  const list = filtered();
+  const monday = mondayOfThisWeek();
+  const weekReplies = rows.filter(r => r.status === '회신옴' && r.last_touch && r.last_touch >= monday).length;
+
+  $('summary').innerHTML =
+    `<div class="kpi hero"><b>${rows.length}</b><span>전체 바이어</span></div>` +
+    STATUSES.map(st => {
+      const n = rows.filter(r => r.status === st).length;
+      return `<div class="kpi"><b>${n}</b><span>${st}</span></div>`;
+    }).join('') +
+    `<div class="kpi week"><b>${weekReplies}</b><span>이번 주 회신</span></div>`;
+
+  $('count').textContent = `${list.length}건 표시 / 전체 ${rows.length}건`;
+
+  $('tbody').innerHTML = list.length ? list.map(r => `
+    <tr>
+      <td class="co" data-l="회사명">${esc(r.company)}${r.type ? `<small>${esc(r.type)}</small>` : ''}</td>
+      <td data-l="국가">${esc(r.country) || '<span class="dash">—</span>'}</td>
+      <td data-l="바이어 담당자">${esc(r.contact_name) || '<span class="dash">—</span>'}</td>
+      <td data-l="이메일">${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : '<span class="dash">—</span>'}</td>
+      <td data-l="웹사이트">${r.website ? `<a href="${esc(r.website)}" target="_blank" rel="noopener">바로가기</a>` : '<span class="dash">—</span>'}</td>
+      <td data-l="상태">
+        <select class="mini-select js-status" data-id="${r.id}">
+          ${STATUSES.map(s => `<option${s === r.status ? ' selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td data-l="담당 직원">${esc(r.owner) || '<span class="dash">—</span>'}</td>
+      <td class="nowrap" data-l="마지막 연락">${esc(r.last_touch) || '<span class="dash">—</span>'}</td>
+      <td class="memo" data-l="관심사">${esc(r.interest || r.notes || '') || '<span class="dash">—</span>'}</td>
+      <td data-l=""><button class="btn-line btn-sm js-edit" data-id="${r.id}">수정</button></td>
+    </tr>`).join('')
+    : `<tr><td colspan="10" class="empty">조건에 맞는 바이어가 없습니다.</td></tr>`;
+}
+
+/* ════════ 상태 즉시 변경 ════════ */
+async function changeStatus(id, value, selectEl) {
+  const row = rows.find(r => r.id === id);
+  const before = row ? row.status : null;
+  selectEl.disabled = true;
+  const { error } = await sb.from('buyers').update({ status: value }).eq('id', id);
+  selectEl.disabled = false;
+  if (error) {
+    selectEl.value = before;
+    toast('변경 실패 — ' + error.message, true);
+    return;
+  }
+  if (row) row.status = value;
+  render();
+  toast(`상태를 '${value}'(으)로 변경했습니다.`);
+}
+
+/* ════════ 추가 / 수정 폼 ════════ */
+function openModal(id) {
+  editingId = id || null;
+  deleteArmed = false;
+  $('modalMsg').innerHTML = '';
+  $('modalTitle').textContent = id ? '바이어 수정' : '바이어 추가';
+  $('deleteBtn').style.display = id ? 'inline-block' : 'none';
+  $('deleteBtn').textContent = '삭제';
+  $('f_status').innerHTML = STATUSES.map(s => `<option>${s}</option>`).join('');
+
+  const r = id ? rows.find(x => x.id === id) : null;
+  FIELDS.forEach(f => { $('f_' + f).value = r ? (r[f] ?? '') : ''; });
+  if (!r) $('f_status').value = '후보';
+
+  $('overlay').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('f_company').focus(), 40);
+}
+
+function closeModal() {
+  $('overlay').classList.remove('on');
+  document.body.style.overflow = '';
+  editingId = null;
+}
+
+async function save() {
+  const payload = {};
+  FIELDS.forEach(f => {
+    const v = $('f_' + f).value.trim();
+    payload[f] = v === '' ? null : v;
+  });
+  if (!payload.company) {
+    $('modalMsg').innerHTML = '<div class="inline-msg">회사명은 반드시 입력해야 합니다.</div>';
+    return;
+  }
+  if (!payload.status) payload.status = '후보';
+
+  $('saveBtn').disabled = true; $('saveBtn').textContent = '저장 중...';
+  const res = editingId
+    ? await sb.from('buyers').update(payload).eq('id', editingId)
+    : await sb.from('buyers').insert(payload);
+  $('saveBtn').disabled = false; $('saveBtn').textContent = '저장';
+
+  if (res.error) {
+    const m = res.error.message || '';
+    const friendly = m.includes('buyers_email_unique') || m.includes('duplicate key')
+      ? '이미 같은 이메일의 바이어가 등록되어 있습니다.'
+      : m.includes('buyers_status_check')
+        ? '상태 값이 올바르지 않습니다.'
+        : m;
+    $('modalMsg').innerHTML = `<div class="inline-msg">저장 실패 — ${esc(friendly)}</div>`;
+    return;
+  }
+  closeModal();
+  toast(editingId ? '수정했습니다.' : '추가했습니다.');
+  await loadData();
+}
+
+async function remove() {
+  if (!editingId) return;
+  if (!deleteArmed) {                      // 두 번 눌러야 삭제 (실수 방지)
+    deleteArmed = true;
+    $('deleteBtn').textContent = '한 번 더 누르면 삭제';
+    setTimeout(() => { deleteArmed = false; $('deleteBtn').textContent = '삭제'; }, 4000);
+    return;
+  }
+  const { error } = await sb.from('buyers').delete().eq('id', editingId);
+  if (error) { $('modalMsg').innerHTML = `<div class="inline-msg">삭제 실패 — ${esc(error.message)}</div>`; return; }
+  closeModal();
+  toast('삭제했습니다.');
+  await loadData();
+}
+
+/* ════════ 이벤트 연결 ════════ */
+$('loginBtn').addEventListener('click', doLogin);
+$('password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+$('email').addEventListener('keydown', e => { if (e.key === 'Enter') $('password').focus(); });
+
+$('logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+$('addBtn').addEventListener('click', () => openModal(null));
+$('reloadBtn').addEventListener('click', async () => { await loadData(); toast('새로고침했습니다.'); });
+$('resetBtn').addEventListener('click', () => {
+  $('q').value = ''; $('fCountry').value = ''; $('fStatus').value = ''; $('fOwner').value = '';
+  render();
+});
+['q','fCountry','fStatus','fOwner'].forEach(id =>
+  $(id).addEventListener('input', render));
+
+$('tbody').addEventListener('change', e => {
+  const el = e.target.closest('.js-status');
+  if (el) changeStatus(el.dataset.id, el.value, el);
+});
+$('tbody').addEventListener('click', e => {
+  const el = e.target.closest('.js-edit');
+  if (el) openModal(el.dataset.id);
+});
+
+$('saveBtn').addEventListener('click', save);
+$('deleteBtn').addEventListener('click', remove);
+$('closeBtn').addEventListener('click', closeModal);
+$('cancelBtn').addEventListener('click', closeModal);
+$('overlay').addEventListener('click', e => { if (e.target === $('overlay')) closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('overlay').classList.contains('on')) closeModal();
+  if (e.key === 'Escape' && $('impOverlay').classList.contains('on')) closeImport();
+});
+
+
+/* ════════ 신규 바이어 검토 ════════ */
+let cand = [];
+
+function parseCSV(text) {
+  const out = []; let row = [], cell = '', q = false;
+  text = text.replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i+1] === '"') { cell += '"'; i++; } else q = false; }
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n') { row.push(cell); out.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  if (cell !== '' || row.length) { row.push(cell); out.push(row); }
+  return out.filter(r => r.some(v => String(v).trim() !== ''));
+}
+
+function openImport() {
+  cand = [];
+  $('impMsg').innerHTML = '';
+  $('impText').value = ''; $('impFile').value = '';
+  $('impStep1').classList.remove('hide');
+  $('impStep2').classList.add('hide');
+  $('impLoadBtn').classList.remove('hide');
+  $('impRunBtn').classList.add('hide');
+  $('impBackBtn').classList.add('hide');
+  $('impTitle').textContent = '신규 바이어 검토';
+  $('impOverlay').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function closeImport() {
+  $('impOverlay').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function loadCandidates() {
+  const text = $('impText').value.trim();
+  if (!text) { $('impMsg').innerHTML = '<div class="inline-msg">CSV 내용이 비어 있습니다. 파일을 고르거나 내용을 붙여넣으세요.</div>'; return; }
+
+  const table = parseCSV(text);
+  if (table.length < 2) { $('impMsg').innerHTML = '<div class="inline-msg">읽을 수 있는 줄이 없습니다.</div>'; return; }
+
+  const head = table[0].map(h => h.trim().toLowerCase());
+  if (!head.indexOf) return;
+  if (head.indexOf('company') < 0) {
+    $('impMsg').innerHTML = '<div class="inline-msg">첫 줄에 company 열이 있어야 합니다. 헤더가 포함된 CSV인지 확인해 주세요.</div>';
+    return;
+  }
+
+  const existCo = new Set(rows.map(r => String(r.company || '').toLowerCase()));
+  const existEm = new Set(rows.filter(r => r.email).map(r => r.email.toLowerCase()));
+  const seenCo = new Set(), seenEm = new Set();
+
+  cand = [];
+  for (let i = 1; i < table.length; i++) {
+    const o = {};
+    FIELDS.forEach(f => {
+      const idx = head.indexOf(f);
+      const v = idx >= 0 ? String(table[i][idx] ?? '').trim() : '';
+      o[f] = v === '' ? null : v;
+    });
+    if (!o.company) continue;
+    if (!o.status || STATUSES.indexOf(o.status) < 0) o.status = '후보';
+    const ck = o.company.toLowerCase(), ek = o.email ? o.email.toLowerCase() : null;
+    const dup = existCo.has(ck) || seenCo.has(ck) || (ek && (existEm.has(ek) || seenEm.has(ek)));
+    seenCo.add(ck); if (ek) seenEm.add(ek);
+    cand.push({ data: o, dup, pick: !dup });
+  }
+
+  if (!cand.length) { $('impMsg').innerHTML = '<div class="inline-msg">읽어들인 회사가 없습니다.</div>'; return; }
+
+  $('impMsg').innerHTML = '';
+  $('impStep1').classList.add('hide');
+  $('impStep2').classList.remove('hide');
+  $('impLoadBtn').classList.add('hide');
+  $('impRunBtn').classList.remove('hide');
+  $('impBackBtn').classList.remove('hide');
+  $('impTitle').textContent = `신규 바이어 검토 — ${cand.length}곳`;
+  renderCards();
+}
+
+function renderCards() {
+  $('impCards').innerHTML = cand.map((c, i) => {
+    const d = c.data;
+    const tag = c.dup
+      ? '<span class="tag tag-dup">이미 등록됨</span>'
+      : (d.email ? '<span class="tag tag-mail">이메일 확보</span>'
+                 : '<span class="tag tag-form">이메일 없음</span>');
+    const links =
+      (d.website  ? `<a class="lk" href="${esc(d.website)}" target="_blank" rel="noopener">홈페이지 ↗</a>` : '') +
+      (d.evidence && d.evidence !== d.website
+        ? `<a class="lk" href="${esc(d.evidence)}" target="_blank" rel="noopener">근거 페이지 ↗</a>` : '') +
+      (d.email ? `<a class="lk" href="mailto:${esc(d.email)}">${esc(d.email)}</a>` : '');
+    return `
+      <label class="cd ${c.pick ? 'on' : ''} ${c.dup ? 'dup' : ''}" data-i="${i}">
+        <input type="checkbox" class="js-pick" data-i="${i}" ${c.pick ? 'checked' : ''} ${c.dup ? 'disabled' : ''}>
+        <div class="body2">
+          <div class="nm">${esc(d.company)}</div>
+          <div class="meta">${esc(d.country) || '국가 미상'}${d.type ? ' · ' + esc(d.type) : ''}</div>
+          <div class="why">${esc(d.interest) || '<span class="dash">설명 없음</span>'}</div>
+          <div class="links">${links}${tag}</div>
+          ${d.notes ? `<div class="memo2">${esc(d.notes)}</div>` : ''}
+        </div>
+      </label>`;
+  }).join('');
+  updateSum();
+}
+
+function updateSum() {
+  const n = cand.filter(c => c.pick).length;
+  const dupN = cand.filter(c => c.dup).length;
+  $('impSum').textContent = `${cand.length}곳 중 ${n}곳 선택` + (dupN ? ` · 중복 ${dupN}곳 제외됨` : '');
+  $('impRunBtn').textContent = `선택한 ${n}곳 추가`;
+  $('impRunBtn').disabled = n === 0;
+}
+
+async function confirmImport() {
+  const list = cand.filter(c => c.pick).map(c => c.data);
+  if (!list.length) return;
+  $('impRunBtn').disabled = true; $('impRunBtn').textContent = '추가하는 중...';
+  let added = 0; const failed = [];
+  for (let i = 0; i < list.length; i += 50) {
+    const chunk = list.slice(i, i + 50);
+    const { error } = await sb.from('buyers').insert(chunk);
+    if (error) failed.push(error.message); else added += chunk.length;
+  }
+  $('impRunBtn').disabled = false;
+  if (failed.length) {
+    $('impMsg').innerHTML = `<div class="inline-msg">일부 실패 — ${esc(failed[0])}</div>`;
+    updateSum();
+  } else {
+    closeImport();
+    toast(`${added}곳을 추가했습니다.`);
+  }
+  await loadData();
+}
+
+$('importBtn').addEventListener('click', openImport);
+$('impCloseBtn').addEventListener('click', closeImport);
+$('impCancelBtn').addEventListener('click', closeImport);
+$('impLoadBtn').addEventListener('click', loadCandidates);
+$('impRunBtn').addEventListener('click', confirmImport);
+$('impBackBtn').addEventListener('click', () => {
+  $('impStep1').classList.remove('hide'); $('impStep2').classList.add('hide');
+  $('impLoadBtn').classList.remove('hide'); $('impRunBtn').classList.add('hide');
+  $('impBackBtn').classList.add('hide'); $('impMsg').innerHTML = '';
+  $('impTitle').textContent = '신규 바이어 검토';
+});
+$('impAllBtn').addEventListener('click', () => { cand.forEach(c => { if (!c.dup) c.pick = true; }); renderCards(); });
+$('impNoneBtn').addEventListener('click', () => { cand.forEach(c => c.pick = false); renderCards(); });
+$('impCards').addEventListener('change', e => {
+  const el = e.target.closest('.js-pick'); if (!el) return;
+  const i = +el.dataset.i;
+  cand[i].pick = el.checked;
+  el.closest('.cd').classList.toggle('on', el.checked);
+  updateSum();
+});
+$('impOverlay').addEventListener('click', e => { if (e.target === $('impOverlay')) closeImport(); });
+$('impFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  $('impText').value = await f.text();
+  $('impMsg').innerHTML = '';
+  loadCandidates();
+});
+
+/* ════════ 시작 ════════ */
+if (sb) {
+  const { data } = await sb.auth.getSession();
+  if (data?.session) enterApp();
+}
+</script>
+</body>
+</html>
