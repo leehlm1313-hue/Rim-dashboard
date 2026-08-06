@@ -178,6 +178,44 @@ td.nowrap{white-space:nowrap}
 @media (max-width:760px){ .cd{padding:12px} }
 
 
+
+/* ---------- 사이드바 ---------- */
+.shell{display:flex;min-height:100dvh}
+.side{
+  width:224px;flex:0 0 224px;background:#fff;border-right:1px solid var(--line);
+  padding:16px 12px;position:sticky;top:0;height:100dvh;overflow:auto;z-index:40
+}
+.side .logo{display:flex;align-items:center;gap:9px;padding:6px 8px 18px;font-weight:800;font-size:15px}
+.side .logo .mark{width:26px;height:26px;border-radius:8px;background:#16191d;color:#fff;
+  display:grid;place-items:center;font-size:13px;font-weight:800}
+.side .grp{font-size:10.5px;font-weight:800;color:#9aa4b2;letter-spacing:.06em;
+  padding:14px 8px 6px}
+.side a.nav{
+  display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;
+  font-size:13.5px;color:var(--text);text-decoration:none;font-weight:500;margin-bottom:2px
+}
+.side a.nav:hover{background:var(--line-soft);text-decoration:none}
+.side a.nav.on{background:var(--blue-soft);color:var(--blue);font-weight:700}
+.side a.nav.off{color:#a9b2be;cursor:default}
+.side a.nav.off:hover{background:transparent}
+.side .cnt{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:700}
+.side a.nav.on .cnt{color:var(--blue)}
+.side .soon{margin-left:auto;font-size:10px;font-weight:700;color:#a9b2be;
+  border:1px solid var(--line);border-radius:99px;padding:1px 7px}
+.side .ico{width:16px;text-align:center;flex:0 0 16px;font-size:13px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.crumb{font-size:13px;color:var(--muted)}
+.crumb b{color:var(--text);font-weight:700}
+.burger{display:none;background:transparent;border:1px solid var(--line);
+  padding:6px 10px;border-radius:8px;font-size:15px;line-height:1}
+.side-dim{display:none;position:fixed;inset:0;background:rgba(16,24,40,.4);z-index:35}
+.side-dim.on{display:block}
+@media (max-width:900px){
+  .side{position:fixed;left:0;top:0;transform:translateX(-100%);transition:.2s;box-shadow:0 0 30px rgba(16,24,40,.15)}
+  .side.open{transform:translateX(0)}
+  .burger{display:block}
+}
+
 /* ---------- 상태 색상 · 신규 뱃지 ---------- */
 .mini-select.st-후보{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
 .mini-select.st-검토완료{background:#ecfeff;color:#0e7490;border-color:#a5f3fc}
@@ -244,8 +282,23 @@ td.nowrap{white-space:nowrap}
 
 <!-- ══════════ 본 화면 ══════════ -->
 <div id="app" style="display:none">
+  <div class="shell">
+  <aside class="side" id="side">
+    <div class="logo"><span class="mark">R</span> ROUTE82</div>
+
+    <div class="grp">WORKSPACE</div>
+    <a class="nav on" href="#"><span class="ico">▤</span> 바이어 관리 <span class="cnt" id="navCount"></span></a>
+    <a class="nav off" href="#" data-soon="1"><span class="ico">✉</span> 연락 이력 <span class="soon">준비 중</span></a>
+    <a class="nav off" href="#" data-soon="1"><span class="ico">◷</span> 후속 일정 <span class="soon">준비 중</span></a>
+
+    <div class="grp">MANAGE</div>
+    <a class="nav off" href="#" data-soon="1"><span class="ico">◍</span> 팀 및 권한 <span class="soon">준비 중</span></a>
+    <a class="nav off" href="#" data-soon="1"><span class="ico">▦</span> 데이터 관리 <span class="soon">준비 중</span></a>
+  </aside>
+  <div class="main">
   <header>
-    <div class="brand"><span class="dot">B</span> 바이어 관리</div>
+    <button class="burger" id="burger">☰</button>
+    <span class="crumb">영업 관리 &nbsp;›&nbsp; <b>바이어 관리</b></span>
     <div class="spacer"></div>
     <span class="me" id="me"></span>
     <button class="btn-line btn-sm" id="logoutBtn">로그아웃</button>
@@ -308,6 +361,9 @@ td.nowrap{white-space:nowrap}
       </div>
     </div>
   </div>
+  </div>
+  </div>
+  <div class="side-dim" id="sideDim"></div>
 </div>
 
 <!-- ══════════ 신규 바이어 검토 ══════════ -->
@@ -533,6 +589,7 @@ function render() {
     `<div class="kpi fresh"><b>${rows.filter(r => daysAgo(r.created_at) <= 7).length}</b><span>최근 7일 신규</span></div>`;
 
   $('count').textContent = `${list.length}건 표시 / 전체 ${rows.length}건`;
+  $('navCount').textContent = rows.length;
 
   $('tbody').innerHTML = list.length ? list.map(r => `
     <tr>
@@ -680,6 +737,21 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('impOverlay').classList.contains('on')) closeImport();
 });
 
+
+
+/* ════════ 사이드바 ════════ */
+function closeSide() { $('side').classList.remove('open'); $('sideDim').classList.remove('on'); }
+$('burger').addEventListener('click', () => {
+  const open = $('side').classList.toggle('open');
+  $('sideDim').classList.toggle('on', open);
+});
+$('sideDim').addEventListener('click', closeSide);
+$('side').addEventListener('click', e => {
+  const a = e.target.closest('a.nav'); if (!a) return;
+  e.preventDefault();
+  if (a.dataset.soon) { toast('아직 준비 중인 메뉴입니다.'); return; }
+  closeSide();
+});
 
 /* ════════ 신규 바이어 검토 ════════ */
 let cand = [];
